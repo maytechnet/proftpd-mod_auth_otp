@@ -97,9 +97,31 @@ static int auth_otp_kbdint_authenticate(sftp_kbdint_driver_t *driver,
   sftp_kbdint_challenge_t *challenge;
   unsigned int recvd_count = 0;
   const char **recvd_responses = NULL, *user_otp = NULL;
+  const unsigned char *secret = NULL;
+  size_t secret_len = 0;
+  unsigned long *counter_ptr = NULL;
 
   if (auth_otp_authtab[0].auth_flags & PR_AUTH_FL_REQUIRED) {
     authoritative = TRUE;
+  }
+
+  res = auth_otp_db_rlock(dbh);
+  if (res < 0) {
+    (void) pr_log_writefile(auth_otp_logfd, MOD_AUTH_OTP_VERSION,
+      "failed to read-lock AuthOTPTable: %s", strerror(errno));
+    return -1;
+  }
+
+  res = auth_otp_db_user_info(driver->driver_pool, dbh, user, &secret, &secret_len, counter_ptr);
+  (void) auth_otp_db_unlock(dbh);
+  if (res < 0 && errno == ENOENT && (auth_otp_opts & AUTH_OTP_OPT_PASS_IF_NOT_FOUND_TABLE_ENTRY)) {
+     /*
+     * If PASS_IF_NOT_FOUND_TABLE_ENTRY option set -- we pretend successfuly
+     * verified OTP code without askin user for one. This is useful for scenarius
+     * when sftp auth chains are used but allow user without configured secret to login.
+     */
+
+      return 0;
   }
 
   challenge = pcalloc(driver->driver_pool, sizeof(sftp_kbdint_challenge_t));
@@ -294,19 +316,12 @@ static int handle_user_otp(pool *p, const char *user, const char *user_otp,
      * effect, then we return ERROR -- this is how we require OTP codes for
      * ALL users.  Otherwise we return DECLINED, despite being authoritative,
      * because again, we don't have the necessary data for computing the code.
-     *
-     * If PASS_IF_NOT_FOUND_TABLE_ENTRY option set -- we pretend successfuly
-     * verified OTP code without askin user for one. This is useful for scenarius
-     * when sftp auth chains are used but allow user without configured secret to login.
      */
-
     if (authoritative) {
       if (auth_otp_opts & AUTH_OTP_OPT_REQUIRE_TABLE_ENTRY) {
         auth_otp_auth_code = PR_AUTH_BADPWD;
         return -1;
       }
-    } else if ((xerrno == ENOENT) && (auth_otp_opts & AUTH_OTP_OPT_PASS_IF_NOT_FOUND_TABLE_ENTRY)) {
-        return 1;
     }
 
     return 0;
