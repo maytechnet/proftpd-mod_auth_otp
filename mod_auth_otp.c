@@ -37,6 +37,7 @@
 #define AUTH_OTP_OPT_STANDARD_RESPONSE		0x001
 #define AUTH_OTP_OPT_REQUIRE_TABLE_ENTRY	0x002
 #define AUTH_OTP_OPT_DISPLAY_VERIFICATION_CODE	0x004
+#define AUTH_OTP_OPT_PASS_IF_NOT_FOUND_TABLE_ENTRY	0x008
 
 /* From src/response.c */
 extern pr_response_t *resp_list;
@@ -293,6 +294,10 @@ static int handle_user_otp(pool *p, const char *user, const char *user_otp,
      * effect, then we return ERROR -- this is how we require OTP codes for
      * ALL users.  Otherwise we return DECLINED, despite being authoritative,
      * because again, we don't have the necessary data for computing the code.
+     *
+     * If PASS_IF_NOT_FOUND_TABLE_ENTRY option set -- we pretend successfuly
+     * verified OTP code without askin user for one. This is useful for scenarius
+     * when sftp auth chains are used but allow user without configured secret to login.
      */
 
     if (authoritative) {
@@ -300,6 +305,8 @@ static int handle_user_otp(pool *p, const char *user, const char *user_otp,
         auth_otp_auth_code = PR_AUTH_BADPWD;
         return -1;
       }
+    } else if ((xerrno == ENOENT) && (auth_otp_opts & AUTH_OTP_OPT_PASS_IF_NOT_FOUND_TABLE_ENTRY)) {
+        return 1;
     }
 
     return 0;
@@ -612,6 +619,9 @@ MODRET set_authotpoptions(cmd_rec *cmd) {
 
     } else if (strcmp(cmd->argv[i], "DisplayVerificationCode") == 0) {
       opts |= AUTH_OTP_OPT_DISPLAY_VERIFICATION_CODE;
+
+    } else if (strcmp(cmd->argv[i], "PassIfNotFoundTableEntry") == 0) {
+      opts |= AUTH_OTP_OPT_PASS_IF_NOT_FOUND_TABLE_ENTRY;
 
     } else {
       CONF_ERROR(cmd, pstrcat(cmd->tmp_pool, ": unknown AuthOTPOption: '",
