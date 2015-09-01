@@ -99,8 +99,8 @@ static int auth_otp_kbdint_authenticate(sftp_kbdint_driver_t *driver,
   const char **recvd_responses = NULL, *user_otp = NULL;
   const unsigned char *secret = NULL;
   size_t secret_len = 0;
-  unsigned long *counter_ptr = NULL;
-  int xerrno;
+  unsigned long counter = 0, *counter_ptr = NULL;
+  int xerrno = 0;
 
   if (auth_otp_authtab[0].auth_flags & PR_AUTH_FL_REQUIRED) {
     authoritative = TRUE;
@@ -119,10 +119,13 @@ static int auth_otp_kbdint_authenticate(sftp_kbdint_driver_t *driver,
       return -1;
     }
 
+    if (auth_otp_algo == AUTH_OTP_ALGO_HOTP) {
+      counter_ptr = &counter;
+    }
     res = auth_otp_db_user_info(driver->driver_pool, dbh, user, &secret, &secret_len, counter_ptr);
     xerrno = errno;
     (void) auth_otp_db_unlock(dbh);
-    if (res == -1 && xerrno == ENOENT) {
+    if (res < 0 && xerrno == ENOENT) {
       pr_trace_msg(trace_channel, 20,
         "user's '%s' secret not found and PassIfNotFoundTableEntry set - allow user login", user);
       auth_otp_auth_code = PR_AUTH_OK;
