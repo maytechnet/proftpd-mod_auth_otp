@@ -123,6 +123,9 @@ static int auth_otp_kbdint_authenticate(sftp_kbdint_driver_t *driver,
     xerrno = errno;
     (void) auth_otp_db_unlock(dbh);
     if (res == -1 && xerrno == ENOENT) {
+      pr_trace_msg(trace_channel, 20,
+        "user's '%s' secret not found and PassIfNotFoundTableEntry set - allow user login", user);
+      auth_otp_auth_code = PR_AUTH_OK;
       return 0;
     }
   }
