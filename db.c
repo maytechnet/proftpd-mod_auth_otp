@@ -40,7 +40,7 @@ static char *db_get_name(pool *p, const char *name) {
   modret_t *res;
 
   /* Find the cmdtable for the sql_escapestr command. */
-  cmdtab = pr_stash_get_symbol2(PR_SYM_HOOK, "sql_escapestr", NULL, NULL, NULL);
+  cmdtab = pr_stash_get_symbol(PR_SYM_HOOK, "sql_escapestr", NULL, NULL);
   if (cmdtab == NULL) {
     pr_log_writefile(auth_otp_logfd, MOD_AUTH_OTP_VERSION,
       "error: unable to find SQL hook symbol 'sql_escapestr'");
@@ -190,8 +190,7 @@ int auth_otp_db_user_info(pool *p, struct auth_otp_db *dbh, const char *user,
   tmp_pool = make_sub_pool(p);
 
   /* Find the cmdtable for the sql_lookup command. */
-  sql_cmdtab = pr_stash_get_symbol2(PR_SYM_HOOK, "sql_lookup", NULL, NULL,
-    NULL);
+  sql_cmdtab = pr_stash_get_symbol(PR_SYM_HOOK, "sql_lookup", NULL, NULL);
   if (sql_cmdtab == NULL) {
     pr_log_writefile(auth_otp_logfd, MOD_AUTH_OTP_VERSION,
       "error: unable to find SQL hook symbol 'sql_lookup'");
@@ -280,8 +279,7 @@ int auth_otp_db_update_counter(struct auth_otp_db *dbh, const char *user,
   tmp_pool = make_sub_pool(dbh->pool);
 
   /* Find the cmdtable for the sql_change command. */
-  sql_cmdtab = pr_stash_get_symbol2(PR_SYM_HOOK, "sql_change", NULL, NULL,
-    NULL);
+  sql_cmdtab = pr_stash_get_symbol(PR_SYM_HOOK, "sql_change", NULL, NULL);
   if (sql_cmdtab == NULL) {
     pr_log_writefile(auth_otp_logfd, MOD_AUTH_OTP_VERSION,
       "error: unable to find SQL hook symbol 'sql_change'");
