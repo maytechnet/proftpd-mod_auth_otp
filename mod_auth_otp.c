@@ -1,6 +1,6 @@
 /*
  * ProFTPD: mod_auth_otp
- * Copyright (c) 2015 TJ Saunders
+ * Copyright (c) 2015-2016 TJ Saunders
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
  *
  * -----DO NOT EDIT BELOW THIS LINE-----
  * $Archive: mod_auth_otp.a $
- * $Libraries: -lcrypto $
+ * $Libraries: -lcrypto$
  */
 
 #include "mod_auth_otp.h"
@@ -52,7 +52,7 @@ static int auth_otp_engine = FALSE;
 static unsigned int auth_otp_algo = AUTH_OTP_ALGO_TOTP_SHA1;
 static struct auth_otp_db *dbh = NULL;
 static config_rec *auth_otp_db_config = NULL;
-static int auth_otp_auth_code = PR_AUTH_OK;
+static int auth_otp_auth_code = PR_AUTH_BADPWD;
 
 static int handle_user_otp(pool *p, const char *user, const char *user_otp,
   int authoritative);
@@ -442,7 +442,7 @@ static int handle_user_otp(pool *p, const char *user, const char *user_otp,
  */
 
 MODRET auth_otp_auth(cmd_rec *cmd) {
-  int authoritative = FALSE, res;
+  int authoritative = FALSE, res = 0;
   char *user = NULL, *user_otp = NULL;
 
   if (auth_otp_engine == FALSE ||
@@ -487,6 +487,7 @@ MODRET auth_otp_auth(cmd_rec *cmd) {
         /* Indicate HANDLED. */
         res = 1;
       }
+
     } else {
       res = handle_user_otp(cmd->tmp_pool, user, user_otp, authoritative);
     }
